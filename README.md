@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title"></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        // ==========================================
+        //  إعدادات الصالون - غير المعلومات هنا فقط عند البيع
+        // ==========================================
+        const CONFIG = {
+            salonName: "صالون عبيدة",    // اسم الصالون
+            whatsapp: "963980012441",   // رقم الواتساب مع رمز الدولة بدون +
+            currency: "ل.س",            // العملة
+            adminPass: "1234",          // كلمة سر لوحة الإدارة
+            mainColor: "#d4af37",       // اللون الأساسي (ذهبي)
+            services: [
+                { id: 1, name: "حلاقة شعر ودقن", price: 50000, icon: "👑" },
+                { id: 2, name: "قص شعر", price: 35000, icon: "✂️" },
+                { id: 3, name: "بكج العريس", price: 100000, icon: "🤵" },
+                { id: 4, name: "ماسك تنظيف", price: 50000, icon: "✨" }
+            ]
+        };
+        // ==========================================
+    </script>
+
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #0f172a; color: white; }
+        .primary-bg { background: linear-gradient(135deg, var(--main-color) 0%, #b8860b 100%); }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1.5rem; }
+        .service-card { transition: 0.3s; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); }
+        .service-card.selected { border: 2px solid var(--main-color); background: rgba(212, 175, 55, 0.1); }
+        input, select { background: #1e293b !important; color: white !important; border-radius: 1rem !important; }
+        :root { --main-color: #d4af37; }
+    </style>
+</head>
+<body class="pb-10">
+
+    <nav class="sticky top-0 z-50 p-4 glass m-4 shadow-xl">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 id="header-name" class="text-xl font-black italic"></h1>
+            <button onclick="accessAdmin()" class="bg-white/10 px-4 py-2 rounded-full text-xs">🔒 الإدارة</button>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 space-y-10">
+        
+        <div class="grid lg:grid-cols-2 gap-8">
+            <div class="space-y-4">
+                <h2 class="text-2xl font-black">اختر الخدمة</h2>
+                <div id="services-list" class="space-y-3"></div>
+            </div>
+
+            <div class="glass p-6 space-y-4 border-2 border-white/5">
+                <h2 class="text-xl font-bold">معلومات الحجز</h2>
+                <input type="text" id="cust-name" placeholder="الاسم الكامل" class="w-full p-4 outline-none">
+                <input type="tel" id="cust-phone" placeholder="رقم الهاتف" class="w-full p-4 outline-none">
+                <input type="date" id="book-date" onchange="renderSlots()" class="w-full p-4 outline-none">
+                <div id="slots-grid" class="grid grid-cols-3 gap-2 py-2 text-center"></div>
+                <button onclick="confirmBooking()" id="book-btn" class="w-full py-5 rounded-2xl text-black font-black text-lg shadow-2xl transition active:scale-95">تأكيد الحجز (واتساب) 🚀</button>
+            </div>
+        </div>
+
+        <section class="glass p-8">
+            <h2 class="text-2xl font-black mb-6 text-center">آراء الزبائن ⭐</h2>
+            <div id="reviews-container" class="grid md:grid-cols-3 gap-4"></div>
+        </section>
+    </main>
+
+    <script>
+        // تعبئة البيانات من الإعدادات
+        document.getElementById('page-title').innerText = CONFIG.salonName;
+        document.getElementById('header-name').innerHTML = `${CONFIG.salonName.split(' ')[0]} <span style="color:${CONFIG.mainColor}">${CONFIG.salonName.split(' ')[1] || ''}</span>`;
+        document.getElementById('book-btn').style.backgroundColor = CONFIG.mainColor;
+        document.documentElement.style.setProperty('--main-color', CONFIG.mainColor);
+
+        let selectedService = null, selectedTime = null;
+        const hours = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "17:00", "18:00", "19:00", "20:00", "21:00"];
+
+        function renderServices() {
+            document.getElementById('services-list').innerHTML = CONFIG.services.map(s => `
+                <div onclick="selectS(${s.id}, '${s.name}')" id="srv-${s.id}" class="service-card glass p-4 flex justify-between items-center">
+                    <div><p class="font-bold">${s.name}</p><p style="color:${CONFIG.mainColor}">${s.price.toLocaleString()} ${CONFIG.currency}</p></div>
+                    <span class="text-2xl">${s.icon}</span>
+                </div>
+            `).join('');
+        }
+
+        function selectS(id, name) {
+            selectedService = name;
+            CONFIG.services.forEach(s => document.getElementById(`srv-${s.id}`).classList.remove('selected'));
+            document.getElementById(`srv-${id}`).classList.add('selected');
+        }
+
+        function renderSlots() {
+            document.getElementById('slots-grid').innerHTML = hours.map(h => `
+                <button onclick="setTime('${h}')" id="t-${h}" class="p-3 rounded-xl text-xs font-bold bg-white/5">${h}</button>
+            `).join('');
+        }
+
+        function setTime(h) {
+            selectedTime = h;
+            hours.forEach(t => document.getElementById(`t-${t}`).style.background = (t === h) ? CONFIG.mainColor : 'rgba(255,255,255,0.05)');
+            hours.forEach(t => document.getElementById(`t-${t}`).style.color = (t === h) ? 'black' : 'white');
+        }
+
+        function confirmBooking() {
+            const name = document.getElementById('cust-name').value;
+            const phone = document.getElementById('cust-phone').value;
+            const date = document.getElementById('book-date').value;
+
+            if(!name || !selectedService || !selectedTime || !date) return Swal.fire('تنبيه','أكمل البيانات','warning');
+
+            const msg = `✨ *حجز جديد* ✨%0A👤 الاسم: ${name}%0A✂️ الخدمة: ${selectedService}%0A📅 التاريخ: ${date}%0A⏰ الموعد: ${selectedTime}`;
+            window.open(`https://api.whatsapp.com/send?phone=${CONFIG.whatsapp}&text=${msg}`, '_self');
+        }
+
+        window.onload = renderServices;
+    </script>
+</body>
+</html>
